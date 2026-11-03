@@ -18,8 +18,8 @@ First release uses the existing Spectrum API/schema contract, not the unrelated 
 
 ## Success criteria
 
-Tests prove valid decision through the host contract; wrong identity/tenant/digest and malformed choice rejection; concurrent approve/deny accepts one; expiry, process restart and failed sends cannot authorize; cross-origin and missing auth rejected; no sensitive URL/argv/logs. Qualify native discovery, mounting and frontend against pinned Hermes v0.22.2 on DigitalOcean. Review before release. Live phone/card rendering and real authenticated device actions are separate evidence, never inferred from API acceptance.
+Tests prove valid decision through the host contract; wrong identity/tenant/digest and malformed choice rejection; concurrent approve/deny accepts one; expiry, process restart and failed sends cannot authorize; cross-origin and missing auth rejected; no sensitive URL/argv/logs. Qualify native discovery, mounting and frontend against pinned Hermes v0.22.2 source. Review before release. Live phone/card rendering and real authenticated device actions are separate evidence, never inferred from API acceptance.
 
 ## Resource ownership
 
-Development uses an isolated task branch and worktree. Test copies run only on approved DigitalOcean compute, with temporary databases and no gateway configuration changes. The operator keeps the exact machine/session/resource ledger in the private deployment issue. Public artifacts contain no credentials, account identities or runtime receipts.
+Development uses an isolated task branch and worktree. Tests run offline from `scripts/test-offline.sh` with temporary databases and no gateway configuration changes. The operator keeps the exact machine/session/resource ledger on the tracking issue. Public artifacts contain no credentials, account identities or runtime receipts.

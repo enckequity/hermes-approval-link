@@ -12,14 +12,21 @@ from hermes_constants import set_hermes_home_override, reset_hermes_home_overrid
 
 ROOT = Path(__file__).resolve().parents[1]
 
+def copy_runtime(target):
+    """Copy only the shipped files (MANIFEST.sha256), as an install would."""
+    for line in (ROOT/'MANIFEST.sha256').read_text().splitlines():
+        name = line.split(None, 1)[1].strip()
+        (target/name).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT/name, target/name)
+
+
 class NativeTests(unittest.TestCase):
     def test_native_manifest_validator_and_real_manager_registration(self):
-        report = validate_plugin_dir(str(ROOT))
-        self.assertTrue(report.ok, report.failures)
         with tempfile.TemporaryDirectory() as home:
             plugins = Path(home)/'plugins'
-            plugins.mkdir()
-            shutil.copytree(ROOT,plugins/'photon-approvals',ignore=shutil.ignore_patterns('.git','__pycache__'))
+            copy_runtime(plugins/'photon-approvals')
+            report = validate_plugin_dir(str(plugins/'photon-approvals'))
+            self.assertTrue(report.ok, report.failures)
             (Path(home)/'config.yaml').write_text('plugins:\n  enabled: [photon-approvals]\n  isolation: in_process\n')
             manager = PluginManager(scope_key=home)
             try:
@@ -59,3 +66,23 @@ class NativeTests(unittest.TestCase):
         paths={route.path for route in app.routes}
         self.assertIn('/api/plugins/photon-approvals/requests/{request_id}',paths)
         self.assertIn('/api/plugins/photon-approvals/requests/{request_id}/decision',paths)
+
+    def test_copied_plugin_directory_loads_without_installing_the_package(self):
+        import subprocess, sys
+        with tempfile.TemporaryDirectory() as home:
+            target = Path(home)/'photon-approvals'
+            copy_runtime(target)
+            code = (
+                "import importlib.util as u, sys\n"
+                "def load(name, path, **kw):\n"
+                "    spec = u.spec_from_file_location(name, path, **kw); m = u.module_from_spec(spec)\n"
+                "    sys.modules[name] = m; spec.loader.exec_module(m); return m\n"
+                f"plugin = load('copied_plugin', {str(target/'__init__.py')!r}, submodule_search_locations=[{str(target)!r}])\n"
+                "names = []\n"
+                "class Ctx:\n"
+                "    def register_approval_transport(self, name, fn): names.append(name)\n"
+                "plugin.register(Ctx())\n"
+                f"api = load('copied_api', {str(target/'dashboard/plugin_api.py')!r})\n"
+                "assert names == ['photon-cards'] and api.router.routes\n")
+            result = subprocess.run([sys.executable, '-I', '-c', code], capture_output=True, text=True, cwd=home)
+            self.assertEqual(result.returncode, 0, result.stderr)
