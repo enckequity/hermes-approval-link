@@ -1,8 +1,8 @@
-name: photon-approvals
-label: Photon approval cards
-version: 0.1.2
+name: approval-link
+label: Approval links
+version: 0.2.0
 kind: backend
-description: Request-bound approval cards using the native Hermes approval transport and authenticated dashboard.
+description: Text a request-bound approval link through the gateway's own messaging; approve once or deny in the authenticated dashboard.
 author: TeamShift
 license: MIT
-homepage: https://github.com/enckequity/hermes-photon-approvals
+homepage: https://github.com/enckequity/hermes-approval-link

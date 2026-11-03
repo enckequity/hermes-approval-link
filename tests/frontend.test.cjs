@@ -5,13 +5,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname,'../dashboard/dist/index.js'),'utf8');
 
-function harness(row) {
+function harness(row, windowExtra={}) {
   let component, cursor=0, firstEffect=true;
   const states=[], calls=[];
   const React={
     Fragment:'fragment',
     createElement:(tag,props,...children)=>({tag,props:props||{},children}),
     useState:(initial)=>{const i=cursor++;if (!(i in states)) states[i]=initial;return [states[i],v=>{states[i]=v;}];},
+    useRef:(initial)=>{const i=cursor++;if (!(i in states)) states[i]={current:initial};return states[i];},
     useEffect:fn=>{if(firstEffect){firstEffect=false;fn();}}
   };
   const sdk={React,fetchJSON:async(url,options)=>{
@@ -19,7 +20,7 @@ function harness(row) {
     if(options) row={...row,status:JSON.parse(options.body).choice,choice:JSON.parse(options.body).choice};
     return row;
   }};
-  vm.runInNewContext(source,{window:{__HERMES_PLUGIN_SDK__:sdk,__HERMES_PLUGINS__:{register:(name,fn)=>{component=fn;}},location:{search:'?request=r1'}},
+  vm.runInNewContext(source,{window:{__HERMES_PLUGIN_SDK__:sdk,__HERMES_PLUGINS__:{register:(name,fn)=>{component=fn;}},location:{search:'?request=r1'},...windowExtra},
     URLSearchParams,Date,setInterval:()=>1,clearInterval:()=>{}});
   return {calls,render:()=>{cursor=0;return component();}};
 }
@@ -39,13 +40,26 @@ test('two exclusive decision buttons, safe command text and bound POST',async()=
   buttons[0].props.onClick(); await new Promise(setImmediate); tree=h.render();
   assert.ok(find(tree,'button').every(b=>b.props.disabled));
   const post=h.calls.find(c=>c[1]);
-  assert.equal(post[0],'/api/plugins/photon-approvals/requests/r1/decision');
+  assert.equal(post[0],'/api/plugins/approval-link/requests/r1/decision');
   assert.deepEqual(JSON.parse(post[1].body),{digest:'d',choice:'once'});
 });
 
-test('expired cards cannot send a decision',async()=>{
+test('expired links cannot send a decision',async()=>{
   const h=harness({...pending(),expires:Date.now()/1000-1}); h.render(); await new Promise(setImmediate);
   const buttons=find(h.render(),'button'); assert.ok(buttons.every(b=>b.props.disabled));
   buttons[0].props.onClick(); await new Promise(setImmediate);
   assert.equal(h.calls.filter(c=>c[1]).length,0);
+});
+
+test('a framed page renders no buttons and fetches nothing',async()=>{
+  const h=harness(pending(),{top:{},self:{}}); const tree=h.render(); await new Promise(setImmediate);
+  assert.equal(find(tree,'button').length,0);
+  assert.equal(h.calls.length,0);
+});
+
+test('a double click sends one decision',async()=>{
+  const h=harness(pending()); h.render(); await new Promise(setImmediate);
+  const [approve,deny]=find(h.render(),'button');
+  approve.props.onClick(); deny.props.onClick(); await new Promise(setImmediate);
+  assert.equal(h.calls.filter(c=>c[1]).length,1);
 });

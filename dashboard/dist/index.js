@@ -4,13 +4,16 @@
   if (!SDK || !window.__HERMES_PLUGINS__) return;
   const React = SDK.React;
   const h = React.createElement;
-  const api = "/api/plugins/photon-approvals/requests/";
+  const api = "/api/plugins/approval-link/requests/";
 
-  function ApprovalCard() {
+  function ApprovalPage() {
+    // Never offer a decision inside someone else's frame (clickjacking); the proxy also sets frame-ancestors.
+    if (window.top !== window.self) return h("main", null, h("p", {role: "alert"}, "Open this link in your browser to review the request."));
     const id = new URLSearchParams(window.location.search).get("request") || "";
     const [row, setRow] = React.useState(null);
     const [error, setError] = React.useState("");
     const [busy, setBusy] = React.useState(false);
+    const sending = React.useRef(false); // a ref blocks a double-click before state re-renders
     const [now, setNow] = React.useState(Date.now());
     React.useEffect(function () {
       let active = true;
@@ -18,7 +21,7 @@
       setError("");
       async function refresh() {
         if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
-          if (active) setError("Open the approval card from its original conversation.");
+          if (active) setError("Open the approval link from its original text.");
           return;
         }
         try {
@@ -35,38 +38,37 @@
     }, [id]);
 
     async function decide(choice) {
-      if (busy || !row || row.status !== "pending" || row.expires * 1000 <= Date.now()) return;
-      setBusy(true);
+      if (sending.current || !row || row.status !== "pending" || row.expires * 1000 <= Date.now()) return;
+      sending.current = true; setBusy(true);
       try {
         const data = await SDK.fetchJSON(api + encodeURIComponent(id) + "/decision", {
           method: "POST",
-          headers: {"Content-Type": "application/json", "X-Photon-Approval": "1"},
+          headers: {"Content-Type": "application/json", "X-Approval-Link": "1"},
           body: JSON.stringify({digest: row.digest, choice: choice})
         });
         setRow(data); setError("");
       } catch (_) {
         setRow(null);
-        setError("The decision could not be confirmed. Reopen this card to check its status before trying again.");
-      } finally { setBusy(false); }
+        setError("The decision could not be confirmed. Reopen this link to check its status before trying again.");
+      } finally { sending.current = false; setBusy(false); }
     }
 
     const pending = row && row.status === "pending" && row.expires * 1000 > now;
     let status = "Waiting for a decision.";
     if (row && !pending) {
-      if (row.choice === "once") status = "Approval recorded for this request only. Execution results appear in the conversation.";
-      else if (row.choice === "deny") status = "Request denied.";
+      if (row.choice) status = "Your answer was sent. Hermes confirms the result in the conversation.";
       else status = "This request has expired or is no longer available.";
     }
-    return h("main", {className: "photon-approval-card"},
+    return h("main", {className: "approval-link-card"},
       h("h1", null, "Review this command"),
       error ? h("p", {role: "alert"}, error) : null,
       row ? h(React.Fragment, null,
         h("p", null, row.description),
         h("pre", {tabIndex: 0, "aria-label": "Command to review"}, row.command),
         h("p", {role: "status", "aria-live": "polite"}, status),
-        h("div", {className: "photon-approval-actions"},
+        h("div", {className: "approval-link-actions"},
           h("button", {type: "button", disabled: !pending || busy, onClick: function () { decide("once"); }}, "Approve once"),
           h("button", {type: "button", disabled: !pending || busy, onClick: function () { decide("deny"); }}, "Deny"))) : null);
   }
-  window.__HERMES_PLUGINS__.register("photon-approvals", ApprovalCard);
+  window.__HERMES_PLUGINS__.register("approval-link", ApprovalPage);
 }());
