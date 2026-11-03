@@ -24,16 +24,19 @@ def make_router(settings=None):
         try:
             config = settings or Settings.from_env()
         except ValueError:
-            raise HTTPException(503, 'Approval cards are not configured.') from None
+            raise HTTPException(503, 'Approval links are not configured.') from None
         if not getattr(request.app.state, 'auth_required', False):
-            raise HTTPException(503, 'Approval cards require authenticated dashboard access.')
+            raise HTTPException(503, 'Approval links require authenticated dashboard access.')
         session = getattr(request.state, 'session', None)
         if session is None:
             raise HTTPException(401, 'Sign in to review this request.')
         identity = tuple(getattr(session, key, None) for key in ('provider', 'user_id', 'org_id'))
         if identity != config.identity or getattr(session, 'expires_at', 0) <= time.time():
             raise HTTPException(403, 'This account cannot review this request.')
-        return config, Store(config.state_dir, config.tenant, config.identity)
+        try:
+            return config, Store(config.state_dir, config.tenant, config.identity)
+        except (ValueError, OSError):
+            raise HTTPException(503, 'Approval state is not available.') from None
 
     def response(row):
         fields = ('id', 'digest', 'command', 'description', 'expires', 'status', 'choice')

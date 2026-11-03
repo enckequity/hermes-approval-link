@@ -1,6 +1,6 @@
 # What native Hermes already does, and the gap
 
-Checked against unchanged Hermes v0.22.2 (`d923a5eb487a17c0a68801bba9ef0f56c81040a8`), TeamShift's pin. Native covers the approval decision but not a request-bound approval over Messages, so this plugin is still needed. It stays a bounded exception to the native-only policy.
+Checked against unchanged Hermes v0.22.2 (`d923a5eb487a17c0a68801bba9ef0f56c81040a8`), the pinned version. Native covers the approval decision but not a request-bound approval over Messages, so this plugin is still needed. It stays a bounded exception to the native-only policy.
 
 ## Typed text, on every messaging path
 

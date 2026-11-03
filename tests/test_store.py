@@ -63,7 +63,13 @@ class StoreTests(unittest.TestCase):
         with concurrent.futures.ThreadPoolExecutor(2) as pool:
             self.assertEqual(sum(pool.map(decide, ["once", "deny"])), 1)
 
-    def test_old_card_cannot_decide_new_request(self):
+    def test_touch_is_scoped_to_the_identity(self):
+        self.store.create('t1','d','c','x',time.time()+30)
+        other=Store(self.store.directory,self.store.tenant,('p','someone-else',''))
+        before=self.store.read('t1')['beat']; time.sleep(.02); other.touch('t1')
+        self.assertEqual(self.store.read('t1')['beat'],before)
+
+    def test_old_link_cannot_decide_new_request(self):
         self.store.close("r1", "expired")
         self.store.create("r2", "digest-2", "new command", "new", time.time() + 30)
         with self.assertRaises(Rejected):

@@ -14,20 +14,20 @@ Reviewed 2026-11-03 against Hermes v0.22.2 (`d923a5e`), then again after the mov
 
 **CSRF. Sound.** POST needs the exact configured Origin, `Content-Type: application/json` and a custom `X-Approval-Link` header (forcing a preflight from any other origin), on top of the verified dashboard session. Bodies are capped at 2 KB and parsed strictly. Dashboard session cookies are `SameSite=Lax`. GET has no side effects.
 
-**Who can approve. One configured person.** The API requires `app.state.auth_required`, a verified unexpired interactive session, and an exact match on provider, user ID and organization from operator config. Service-token callers get 401. A selected transport replaces every built-in prompt surface, so every approval in that gateway goes to this one person. That fits the owner runtime. Do not enable it for a workspace with several members. The text does not say which session asked; the authenticated page shows the redacted command and reason.
+**Who can approve. One configured person.** The API requires `app.state.auth_required`, a verified unexpired interactive session, and an exact match on provider, user ID and organization from operator config. Service-token callers get 401. A selected transport replaces every built-in prompt surface, so every approval in that gateway goes to this one person. That fits a single-owner runtime. Do not enable it for a workspace with several members. The text does not say which session asked; the authenticated page shows the redacted command and reason.
 
-**Credential in the link. None.** The text holds the dashboard URL plus `?request=<random id>`, no command text and no digest. The link grants nothing without the dashboard login. A spoofed text with a look-alike domain is the phishing case: the text arrives from the owner's own front-door chat, and the page only works on the configured origin.
+**Credential in the link. None.** The text holds the dashboard URL plus `?request=<random id>`, no command text and no digest. The link grants nothing without the dashboard login. A spoofed text with a look-alike domain is the phishing case: the text arrives from the owner's own chat, and the page only works on the configured origin.
 
 **Delivery.** The text goes through Hermes' `send_message` path with the configured `platform:chat_id`, which applies Hermes' relay egress check and the front door's bound-chat check. Any failure denies and nothing is resent. The plugin holds no messaging credentials. The sent text is mirrored into the session transcript by Hermes; it contains only the link.
 
-**Deployment fix.** The owner dashboard is at `https://owner.teamshift.io/native`; `APPROVAL_LINK_PUBLIC_URL` now takes a plain path prefix (no query, dot segments or odd characters). The Origin check uses scheme and host, normalized as browsers send them (lowercase, default port dropped).
+**Deployment fix.** `APPROVAL_LINK_PUBLIC_URL` now takes a plain path prefix (no query, dot segments or odd characters). The Origin check uses scheme and host, normalized as browsers send them (lowercase, default port dropped).
 
 ## Open item: framing (clickjacking)
 
-I found no `frame-ancestors` or `X-Frame-Options` anywhere in the dashboard server code (`hermes_cli`). `SameSite=Lax` session cookies are not sent in cross-site frames, which blocks framing in practice, but the headers would make it explicit. The page itself now renders no buttons when `window.top !== window.self`, so it is safe without the proxy. Since the link opens in the browser, nothing needs framing, and the proxy header is the second layer. Smallest fix, and it belongs in our route, not in Hermes: add `header Content-Security-Policy "frame-ancestors 'none'"` inside the `handle_path /native/*` block of `deploy/owner-web/Caddyfile` in enckequity/teamshift. Not done here; it goes in the fold-in PR.
+I found no `frame-ancestors` or `X-Frame-Options` anywhere in the dashboard server code (`hermes_cli`). `SameSite=Lax` session cookies are not sent in cross-site frames, which blocks framing in practice, but the headers would make it explicit. The page itself now renders no buttons when `window.top !== window.self`, so it is safe without the proxy. Since the link opens in the browser, nothing needs framing, and the proxy header is the second layer. Smallest fix, and it belongs in our route, not in Hermes: set `Content-Security-Policy: frame-ancestors 'none'` on the dashboard path at the reverse proxy. Not done here; it is a deployment step.
 
 ## Limits to accept or test live
 
-- Pomerium sits in front of the owner dashboard. Whether login completes from a link opened out of Messages is unproven (see the acceptance checklist).
+- If an authenticating proxy sits in front of the dashboard, whether login completes from a link opened out of Messages is unproven (see the acceptance checklist).
 - State is local SQLite. Anything that can already edit the tenant's database or Hermes config can bypass the plugin.
 - Delivery is best effort; Linq or Apple may delay the text. A late text for an expired request shows "expired".

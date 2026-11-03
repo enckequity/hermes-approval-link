@@ -1,3 +1,4 @@
+import os
 import tempfile
 import time
 import unittest
@@ -72,6 +73,11 @@ class ApiTests(unittest.TestCase):
                      {'digest':'digest-1','choice':['once','deny']}]:
             self.assertIn(self.client.post(self.url+'/decision', json=body, headers=self.headers).status_code, (409,422))
         self.assertEqual(self.store.read('r1')['status'], 'pending')
+
+    def test_bad_state_directory_mode_is_a_503(self):
+        os.chmod(self.settings.state_dir, 0o755)
+        self.addCleanup(os.chmod, self.settings.state_dir, 0o700)
+        self.assertEqual(self.client.get(self.url).status_code, 503)
 
     def test_private_response_headers(self):
         response = self.client.get(self.url)

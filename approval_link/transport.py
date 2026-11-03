@@ -20,7 +20,7 @@ def send_text(target, text):
 
 def present(request, settings, send=send_text):
     seconds = min(float(request.timeout_seconds), 300)
-    if not math.isfinite(seconds) or seconds <= 0 or not {'once','deny'} <= set(request.allowed_choices):
+    if not math.isfinite(seconds) or seconds <= 0:
         return request.respond('deny')
     # Give up before the host does, so the page cannot record an answer Hermes has already denied.
     window = seconds - min(1, seconds/2)

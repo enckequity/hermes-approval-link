@@ -1,4 +1,4 @@
-"""Operator configuration; models and card URLs cannot select identities or recipients."""
+"""Operator configuration; models and request links cannot select identities or recipients."""
 
 import os
 import re

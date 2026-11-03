@@ -12,6 +12,7 @@ function harness(row, windowExtra={}) {
     Fragment:'fragment',
     createElement:(tag,props,...children)=>({tag,props:props||{},children}),
     useState:(initial)=>{const i=cursor++;if (!(i in states)) states[i]=initial;return [states[i],v=>{states[i]=v;}];},
+    useRef:(initial)=>{const i=cursor++;if (!(i in states)) states[i]={current:initial};return states[i];},
     useEffect:fn=>{if(firstEffect){firstEffect=false;fn();}}
   };
   const sdk={React,fetchJSON:async(url,options)=>{
@@ -43,7 +44,7 @@ test('two exclusive decision buttons, safe command text and bound POST',async()=
   assert.deepEqual(JSON.parse(post[1].body),{digest:'d',choice:'once'});
 });
 
-test('expired cards cannot send a decision',async()=>{
+test('expired links cannot send a decision',async()=>{
   const h=harness({...pending(),expires:Date.now()/1000-1}); h.render(); await new Promise(setImmediate);
   const buttons=find(h.render(),'button'); assert.ok(buttons.every(b=>b.props.disabled));
   buttons[0].props.onClick(); await new Promise(setImmediate);
@@ -54,4 +55,11 @@ test('a framed page renders no buttons and fetches nothing',async()=>{
   const h=harness(pending(),{top:{},self:{}}); const tree=h.render(); await new Promise(setImmediate);
   assert.equal(find(tree,'button').length,0);
   assert.equal(h.calls.length,0);
+});
+
+test('a double click sends one decision',async()=>{
+  const h=harness(pending()); h.render(); await new Promise(setImmediate);
+  const [approve,deny]=find(h.render(),'button');
+  approve.props.onClick(); deny.props.onClick(); await new Promise(setImmediate);
+  assert.equal(h.calls.filter(c=>c[1]).length,1);
 });

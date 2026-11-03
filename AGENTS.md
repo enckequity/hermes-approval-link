@@ -1,3 +1,3 @@
-# Connector guardrails
+# Guardrails
 
-Keep Hermes source unchanged; use only its approval transport and dashboard plugin APIs. No auto-approval, command execution, approval-policy changes, permanent grants or fallback allow. Every decision binds to the original request and the one configured, authenticated approver. No messaging-provider code or credentials here: send through Hermes' own `send_message`. No secrets or private identifiers in files, tests or logs. Test with `scripts/test-offline.sh` (disposable virtualenv, pinned Hermes source, no Docker, no live calls). No GitHub Actions. Review security changes before release.
+Keep Hermes source unchanged. No auto-approval, command execution, permanent grants or fallback allow. No messaging-provider code, secrets or private identifiers in files, tests or logs. Test with `scripts/test-offline.sh` (no Docker, no live calls). No GitHub Actions. Security rules: [docs/security-review.md](docs/security-review.md).

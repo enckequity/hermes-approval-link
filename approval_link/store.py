@@ -97,4 +97,5 @@ class Store:
 
     def touch(self, request_id):
         with self.connection() as db:
-            db.execute("UPDATE requests SET beat=? WHERE id=? AND status='pending'", (time.time(), request_id))
+            db.execute("UPDATE requests SET beat=? WHERE id=? AND tenant=? AND identity=? AND status='pending'",
+                       (time.time(), request_id, *self._scope()))
