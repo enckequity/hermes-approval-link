@@ -37,7 +37,7 @@ class PhotonSender:
         auth = base64.b64encode((self.project_id+':'+self.secret).encode()).decode()
         request = Request('https://spectrum.photon.codes/projects/'+quote(self.project_id, safe='')+'/imessage/tokens',
                           data=b'', headers={'Authorization':'Basic '+auth,
-                                             'User-Agent':'HermesPhotonApprovals/0.1.2'}, method='POST')
+                                             'User-Agent':'HermesPhotonApprovals/0.1.3'}, method='POST')
         try:
             with build_opener(NoRedirect).open(request, timeout=timeout) as response:
                 payload = json.loads(response.read(1024*1024))

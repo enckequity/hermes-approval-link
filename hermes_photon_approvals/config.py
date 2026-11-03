@@ -16,6 +16,7 @@ class Settings:
     org_id: str
     dm: str
     state_dir: Path
+    prefix: str = ''  # dashboard path prefix behind a proxy, e.g. /native
 
     @property
     def identity(self):
@@ -29,12 +30,13 @@ class Settings:
             if not value:
                 raise ValueError('Configure PHOTON_APPROVAL_' + name + '.')
             return value
-        origin = required('PUBLIC_URL').rstrip('/')
-        url = urlsplit(origin)
+        public = required('PUBLIC_URL').rstrip('/')
+        url = urlsplit(public)
         if (url.scheme != 'https' or not url.hostname or url.username or url.password
-                or url.path or url.query or url.fragment or '\\' in origin
-                or any(c.isspace() for c in origin)):
-            raise ValueError('Use an HTTPS origin without credentials, path or query.')
+                or url.query or url.fragment or '\\' in public or any(c.isspace() for c in public)
+                or (url.path and not re.fullmatch(r'(/(?!\.+(?:/|$))[A-Za-z0-9._~-]+)+', url.path))):
+            raise ValueError('Use an HTTPS dashboard URL without credentials or query.')
+        origin = url.scheme + '://' + url.netloc
         try:
             url.port
         except ValueError:
@@ -46,4 +48,4 @@ class Settings:
         if not directory.is_absolute():
             raise ValueError('Approval state needs an absolute private directory.')
         return cls(required('TENANT_ID'), origin, required('PROVIDER'), required('USER_ID'),
-                   env.get('PHOTON_APPROVAL_ORG_ID', '').strip(), dm, directory)
+                   env.get('PHOTON_APPROVAL_ORG_ID', '').strip(), dm, directory, url.path)

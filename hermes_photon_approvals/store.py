@@ -86,8 +86,10 @@ class Store:
     def close(self, request_id, status):
         if status not in ('recorded', 'expired', 'cancelled', 'send_failed'):
             raise ValueError("Invalid closing state.")
+        # A decision is never overwritten by expiry or failure; only a decision becomes 'recorded'.
+        guard = "status IN ('once','deny')" if status == 'recorded' else "status='pending'"
         with self.connection() as db:
-            db.execute("UPDATE requests SET status=? WHERE id=? AND tenant=? AND identity=?",
+            db.execute("UPDATE requests SET status=? WHERE id=? AND tenant=? AND identity=? AND " + guard,
                        (status, request_id, *self._scope()))
 
     def record_delivery(self, request_id, stage, metadata):

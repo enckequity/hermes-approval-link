@@ -17,7 +17,7 @@ def present(request, settings, sender):
     deadline = time.monotonic()+seconds
     store = Store(settings.state_dir, settings.tenant, settings.identity)
     store.create(request.request_id,request.digest,request.command,request.description,time.time()+seconds)
-    url = settings.origin+'/photon-approvals?request='+request.request_id
+    url = settings.origin+settings.prefix+'/photon-approvals?request='+request.request_id
     client_id = str(uuid.uuid4())
     store.record_delivery(request.request_id,'intent',{'clientMessageId':client_id})
     try:

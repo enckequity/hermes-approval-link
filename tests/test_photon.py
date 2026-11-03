@@ -13,7 +13,7 @@ class PhotonTests(unittest.TestCase):
             response.read.return_value=b'{"succeed":true,"data":{"type":"shared","token":"synthetic-token"}}'
             self.assertEqual(self.sender()._token(3),'synthetic-token')
             request=build.return_value.open.call_args.args[0]
-            self.assertEqual(request.get_header('User-agent'),'HermesPhotonApprovals/0.1.2')
+            self.assertEqual(request.get_header('User-agent'),'HermesPhotonApprovals/0.1.3')
     def test_fixed_existing_dm_and_no_secret_argv(self):
         sender=self.sender(); calls=[]
         def run(args,**kwargs):

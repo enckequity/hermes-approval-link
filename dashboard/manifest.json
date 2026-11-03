@@ -3,7 +3,7 @@
   "label": "Approvals",
   "description": "Review a specific command and approve it once or deny it.",
   "icon": "ShieldCheck",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "tab": {"path": "/photon-approvals", "position": "end"},
   "entry": "dist/index.js",
   "css": "dist/style.css",

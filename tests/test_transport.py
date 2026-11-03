@@ -42,7 +42,7 @@ class TransportTests(unittest.TestCase):
             result=invoke_approval_transport(lambda r:present(r,self.settings,sender),req,timeout_seconds=2,poll_interval=.01)
             self.assertEqual(result.choice,choice)
             self.assertIsNone(result.failure)
-            self.assertEqual(sender.calls[0][0],self.settings.origin+'/photon-approvals?request='+req.request_id)
+            self.assertEqual(sender.calls[0][0],self.settings.origin+self.settings.prefix+'/photon-approvals?request='+req.request_id)
             self.assertNotIn(req.digest,sender.calls[0][0])
             self.assertEqual(self.store.read(req.request_id)['status'],'recorded')
     def test_timeout_or_send_failure_denies_without_retry(self):

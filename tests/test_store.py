@@ -22,6 +22,14 @@ class StoreTests(unittest.TestCase):
         with self.assertRaises(Rejected):
             other.resolve("r1", "digest-1", "deny")
 
+    def test_closing_never_overwrites_a_recorded_decision(self):
+        self.store.resolve("r1", "digest-1", "once")
+        self.store.close("r1", "expired")
+        self.assertEqual(self.store.read("r1")["status"], "once")
+        self.store.create("r2", "digest-2", "echo", "Test", time.time() + 30)
+        self.store.close("r2", "recorded")
+        self.assertEqual(self.store.read("r2")["status"], "pending")
+
     def test_wrong_tenant_identity_or_digest_cannot_read_or_decide(self):
         for tenant, identity in [("tenant-b", ("oidc", "alice", "org-a")),
                                  ("tenant-a", ("oidc", "mallory", "org-a")),
