@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname,'../dashboard/dist/index.js'),'utf8');
 
-function harness(row) {
+function harness(row, windowExtra={}) {
   let component, cursor=0, firstEffect=true;
   const states=[], calls=[];
   const React={
@@ -19,7 +19,7 @@ function harness(row) {
     if(options) row={...row,status:JSON.parse(options.body).choice,choice:JSON.parse(options.body).choice};
     return row;
   }};
-  vm.runInNewContext(source,{window:{__HERMES_PLUGIN_SDK__:sdk,__HERMES_PLUGINS__:{register:(name,fn)=>{component=fn;}},location:{search:'?request=r1'}},
+  vm.runInNewContext(source,{window:{__HERMES_PLUGIN_SDK__:sdk,__HERMES_PLUGINS__:{register:(name,fn)=>{component=fn;}},location:{search:'?request=r1'},...windowExtra},
     URLSearchParams,Date,setInterval:()=>1,clearInterval:()=>{}});
   return {calls,render:()=>{cursor=0;return component();}};
 }
@@ -48,4 +48,10 @@ test('expired cards cannot send a decision',async()=>{
   const buttons=find(h.render(),'button'); assert.ok(buttons.every(b=>b.props.disabled));
   buttons[0].props.onClick(); await new Promise(setImmediate);
   assert.equal(h.calls.filter(c=>c[1]).length,0);
+});
+
+test('a framed page renders no buttons and fetches nothing',async()=>{
+  const h=harness(pending(),{top:{},self:{}}); const tree=h.render(); await new Promise(setImmediate);
+  assert.equal(find(tree,'button').length,0);
+  assert.equal(h.calls.length,0);
 });

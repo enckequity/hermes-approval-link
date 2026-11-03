@@ -8,7 +8,7 @@ Reviewed 2026-11-03 against Hermes v0.22.2 (`d923a5e`), then again after the mov
 
 **Replay. Sound.** A decision is one compare-and-set from `pending`. A second tap, a later request opened from an old text, or a restart cannot reuse it. Request IDs are fresh per approval.
 
-**Timeout. One bug, fixed.** `Store.close` could relabel a recorded decision as expired. It now changes only a pending row to a failure or expiry state, and only a decided row to `recorded` (`test_closing_never_overwrites_a_recorded_decision`). The waiter takes its expiry before its deadline and reads once more at the deadline, so no answer is accepted after the final read. The host deadline stays authoritative: Hermes discards a late answer.
+**Timeout. One bug, fixed.** `Store.close` could relabel a recorded decision as expired. It now changes only a pending row to a failure or expiry state, and only a decided row to `recorded` (`test_closing_never_overwrites_a_recorded_decision`). The waiter takes its expiry before its deadline and reads once more at the deadline, so no answer is accepted after the final read. The plugin gives up one second (or half the window, if shorter) before the host, so the page cannot record an answer after Hermes timed out. A host interrupt (`/stop`) gives the plugin no signal, so an answer recorded after an interrupt is discarded by Hermes and the page says only that the answer was sent.
 
 **Restart. Fixed.** A gateway restart used to leave a pending row answerable until expiry, with nobody waiting. The waiter now touches its row every quarter second; a pending row untouched for 15 seconds reads as expired and cannot be answered (`test_pending_row_nobody_is_waiting_on_cannot_be_answered`).
 
@@ -24,7 +24,7 @@ Reviewed 2026-11-03 against Hermes v0.22.2 (`d923a5e`), then again after the mov
 
 ## Open item: framing (clickjacking)
 
-I found no `frame-ancestors` or `X-Frame-Options` anywhere in the dashboard server code (`hermes_cli`). `SameSite=Lax` session cookies are not sent in cross-site frames, which blocks framing in practice, but the headers would make it explicit. Since the link now opens in the browser rather than inside an embedded card, nothing needs framing. Smallest fix, and it belongs in our route, not in Hermes: add `header Content-Security-Policy "frame-ancestors 'none'"` inside the `handle_path /native/*` block of `deploy/owner-web/Caddyfile` in enckequity/teamshift. Not done here; it goes in the fold-in PR.
+I found no `frame-ancestors` or `X-Frame-Options` anywhere in the dashboard server code (`hermes_cli`). `SameSite=Lax` session cookies are not sent in cross-site frames, which blocks framing in practice, but the headers would make it explicit. The page itself now renders no buttons when `window.top !== window.self`, so it is safe without the proxy. Since the link opens in the browser, nothing needs framing, and the proxy header is the second layer. Smallest fix, and it belongs in our route, not in Hermes: add `header Content-Security-Policy "frame-ancestors 'none'"` inside the `handle_path /native/*` block of `deploy/owner-web/Caddyfile` in enckequity/teamshift. Not done here; it goes in the fold-in PR.
 
 ## Limits to accept or test live
 

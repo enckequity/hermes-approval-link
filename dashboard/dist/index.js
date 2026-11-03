@@ -7,6 +7,8 @@
   const api = "/api/plugins/approval-link/requests/";
 
   function ApprovalCard() {
+    // Never offer a decision inside someone else's frame (clickjacking); the proxy also sets frame-ancestors.
+    if (window.top !== window.self) return h("main", null, h("p", {role: "alert"}, "Open this link in your browser to review the request."));
     const id = new URLSearchParams(window.location.search).get("request") || "";
     const [row, setRow] = React.useState(null);
     const [error, setError] = React.useState("");
@@ -53,8 +55,7 @@
     const pending = row && row.status === "pending" && row.expires * 1000 > now;
     let status = "Waiting for a decision.";
     if (row && !pending) {
-      if (row.choice === "once") status = "Approval recorded for this request only. Execution results appear in the conversation.";
-      else if (row.choice === "deny") status = "Request denied.";
+      if (row.choice) status = "Your answer was sent. Hermes confirms the result in the conversation.";
       else status = "This request has expired or is no longer available.";
     }
     return h("main", {className: "approval-link-card"},

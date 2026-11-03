@@ -100,6 +100,23 @@ class TransportTests(unittest.TestCase):
         self.store.create(next_request.request_id,next_request.digest,'next','next',time.time()+10)
         with self.assertRaises(Rejected): self.store.resolve(next_request.request_id,req.digest,'once')
 
+    def test_slow_send_does_not_abandon_the_request(self):
+        req=self.request(3)
+        sender=Sender(lambda:time.sleep(.8))
+        out=[]
+        thread=threading.Thread(target=lambda:out.append(present(req,self.settings,sender)))
+        with patch('approval_link.store.STALE',.6):
+            thread.start(); time.sleep(1)
+            self.store.resolve(req.request_id,req.digest,'once')
+            thread.join(3)
+        self.assertEqual(out[0].choice,'once')
+
+    def test_plugin_gives_up_before_the_host_deadline(self):
+        req=self.request(2); start=time.monotonic()
+        self.assertEqual(present(req,self.settings,Sender()).choice,'deny')
+        self.assertLess(time.monotonic()-start,1.3)
+        with self.assertRaises(Rejected): self.store.resolve(req.request_id,req.digest,'once')
+
     def test_pending_row_nobody_is_waiting_on_cannot_be_answered(self):
         self.store.create('orphan','d','echo','x',time.time()+60)
         with patch('approval_link.store.time.time', return_value=time.time()+30):
@@ -111,5 +128,6 @@ class TransportTests(unittest.TestCase):
         with patch('tools.send_message_tool.send_message_tool', return_value='{"success": true}') as tool:
             send_text('relay:chat-1','hi')
         tool.assert_called_once_with({'action':'send','target':'relay:chat-1','message':'hi'})
-        with patch('tools.send_message_tool.send_message_tool', return_value='{"error": "no"}'):
-            with self.assertRaises(RuntimeError): send_text('relay:chat-1','hi')
+        for reply in ['{"error": "no"}', '{"success": true, "skipped": true}']:
+            with patch('tools.send_message_tool.send_message_tool', return_value=reply):
+                with self.assertRaises(RuntimeError): send_text('relay:chat-1','hi')

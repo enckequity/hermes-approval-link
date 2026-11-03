@@ -5,4 +5,4 @@ kind: backend
 description: Text a request-bound approval link through the gateway's own messaging; approve once or deny in the authenticated dashboard.
 author: TeamShift
 license: MIT
-homepage: https://github.com/enckequity/hermes-photon-approvals
+homepage: https://github.com/enckequity/hermes-approval-link
