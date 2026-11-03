@@ -39,7 +39,7 @@ test('two exclusive decision buttons, safe command text and bound POST',async()=
   buttons[0].props.onClick(); await new Promise(setImmediate); tree=h.render();
   assert.ok(find(tree,'button').every(b=>b.props.disabled));
   const post=h.calls.find(c=>c[1]);
-  assert.equal(post[0],'/api/plugins/photon-approvals/requests/r1/decision');
+  assert.equal(post[0],'/api/plugins/approval-link/requests/r1/decision');
   assert.deepEqual(JSON.parse(post[1].body),{digest:'d',choice:'once'});
 });
 

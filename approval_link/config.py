@@ -14,7 +14,7 @@ class Settings:
     provider: str
     user_id: str
     org_id: str
-    dm: str
+    target: str  # where to text the link, e.g. relay:<chat id>; never chosen by a model
     state_dir: Path
     prefix: str = ''  # dashboard path prefix behind a proxy, e.g. /native
 
@@ -26,9 +26,9 @@ class Settings:
     def from_env(cls, env=None):
         env = os.environ if env is None else env
         def required(name):
-            value = env.get('PHOTON_APPROVAL_' + name, '').strip()
+            value = env.get('APPROVAL_LINK_' + name, '').strip()
             if not value:
-                raise ValueError('Configure PHOTON_APPROVAL_' + name + '.')
+                raise ValueError('Configure APPROVAL_LINK_' + name + '.')
             return value
         public = required('PUBLIC_URL').rstrip('/')
         url = urlsplit(public)
@@ -47,11 +47,11 @@ class Settings:
             raise ValueError('Use a valid HTTPS origin.') from None
         if port and port != 443:
             origin += ':' + str(port)
-        dm = required('DM')
-        if not re.fullmatch(r'\+[1-9][0-9]{7,14}', dm):
-            raise ValueError('Configure an existing E.164 direct-message recipient.')
+        target = required('TARGET')
+        if not re.fullmatch(r'[a-z][a-z0-9_-]*:[^\s:]+', target):
+            raise ValueError('Configure the one existing chat to text, as platform:chat_id.')
         directory = Path(required('STATE_DIR'))
         if not directory.is_absolute():
             raise ValueError('Approval state needs an absolute private directory.')
         return cls(required('TENANT_ID'), origin, required('PROVIDER'), required('USER_ID'),
-                   env.get('PHOTON_APPROVAL_ORG_ID', '').strip(), dm, directory, url.path)
+                   env.get('APPROVAL_LINK_ORG_ID', '').strip(), target, directory, url.path)

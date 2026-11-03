@@ -4,7 +4,7 @@ import time
 import unittest
 from pathlib import Path
 
-from hermes_photon_approvals.store import Store, Rejected
+from approval_link.store import Store, Rejected
 
 
 class StoreTests(unittest.TestCase):

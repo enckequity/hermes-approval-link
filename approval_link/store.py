@@ -9,6 +9,10 @@ from contextlib import contextmanager
 from pathlib import Path
 
 
+# A waiter touches its row; a pending row nobody is waiting on (gateway restart) stops being answerable.
+STALE = 15
+
+
 class Rejected(ValueError):
     """The request is missing, expired, already answered or not authorized."""
 
@@ -35,8 +39,7 @@ class Store:
             db.execute("""CREATE TABLE IF NOT EXISTS requests (
                 id TEXT PRIMARY KEY, digest TEXT NOT NULL, tenant TEXT NOT NULL,
                 identity TEXT NOT NULL, command TEXT NOT NULL, description TEXT NOT NULL,
-                expires REAL NOT NULL, status TEXT NOT NULL, choice TEXT,
-                delivery TEXT, created REAL NOT NULL)""")
+                expires REAL NOT NULL, status TEXT NOT NULL, choice TEXT, beat REAL NOT NULL)""")
 
     @contextmanager
     def connection(self):
@@ -56,7 +59,7 @@ class Store:
             raise Rejected("Invalid request identifier.")
         try:
             with self.connection() as db:
-                db.execute("INSERT INTO requests VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NULL, NULL, ?)",
+                db.execute("INSERT INTO requests VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NULL, ?)",
                            (request_id, digest, *self._scope(), command, description, expires, time.time()))
         except sqlite3.IntegrityError:
             raise Rejected("This request already exists.") from None
@@ -68,7 +71,7 @@ class Store:
         if row is None:
             raise Rejected("This approval is unavailable.")
         result = dict(row)
-        if result['status'] == 'pending' and result['expires'] <= time.time():
+        if result['status'] == 'pending' and (result['expires'] <= time.time() or result['beat'] < time.time() - STALE):
             result['status'] = 'expired'
         return result
 
@@ -78,8 +81,8 @@ class Store:
         with self.connection() as db:
             result = db.execute("""UPDATE requests SET status=?, choice=?
                 WHERE id=? AND digest=? AND tenant=? AND identity=?
-                AND status='pending' AND expires>?""",
-                (choice, choice, request_id, digest, *self._scope(), time.time()))
+                AND status='pending' AND expires>? AND beat>?""",
+                (choice, choice, request_id, digest, *self._scope(), time.time(), time.time() - STALE))
             if result.rowcount != 1:
                 raise Rejected("This approval is expired, answered or unavailable.")
 
@@ -92,7 +95,6 @@ class Store:
             db.execute("UPDATE requests SET status=? WHERE id=? AND tenant=? AND identity=? AND " + guard,
                        (status, request_id, *self._scope()))
 
-    def record_delivery(self, request_id, stage, metadata):
+    def touch(self, request_id):
         with self.connection() as db:
-            db.execute("UPDATE requests SET delivery=? WHERE id=? AND tenant=? AND identity=?",
-                       (json.dumps({'stage': stage, **metadata}), request_id, *self._scope()))
+            db.execute("UPDATE requests SET beat=? WHERE id=? AND status='pending'", (time.time(), request_id))

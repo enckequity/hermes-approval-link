@@ -53,7 +53,7 @@ def make_router(settings=None):
     async def decide(request_id: str, request: Request):
         config, store = authorized(request)
         if (request.headers.get('origin') != config.origin
-                or request.headers.get('x-photon-approval') != '1'):
+                or request.headers.get('x-approval-link') != '1'):
             raise HTTPException(403, 'Open this approval from its original workspace.')
         if request.headers.get('content-type', '').split(';')[0].strip() != 'application/json':
             raise HTTPException(415, 'Send a JSON decision.')

@@ -24,21 +24,21 @@ class NativeTests(unittest.TestCase):
     def test_native_manifest_validator_and_real_manager_registration(self):
         with tempfile.TemporaryDirectory() as home:
             plugins = Path(home)/'plugins'
-            copy_runtime(plugins/'photon-approvals')
-            report = validate_plugin_dir(str(plugins/'photon-approvals'))
+            copy_runtime(plugins/'approval-link')
+            report = validate_plugin_dir(str(plugins/'approval-link'))
             self.assertTrue(report.ok, report.failures)
-            (Path(home)/'config.yaml').write_text('plugins:\n  enabled: [photon-approvals]\n  isolation: in_process\n')
+            (Path(home)/'config.yaml').write_text('plugins:\n  enabled: [approval-link]\n  isolation: in_process\n')
             manager = PluginManager(scope_key=home)
             try:
                 manager.discover_and_load()
                 token = set_hermes_home_override(home)
                 try:
-                    entry = manager.get_approval_transport('photon-cards')
+                    entry = manager.get_approval_transport('approval-link')
                 finally:
                     reset_hermes_home_override(token)
-                self.assertIsNone(manager.get_approval_transport('photon-cards'))
-                self.assertIsNotNone(entry, {k: {"error": v.error, "enabled": v.enabled} for k,v in manager._plugins.items() if k == "photon-approvals"})
-                self.assertEqual(entry.plugin_id,'photon-approvals')
+                self.assertIsNone(manager.get_approval_transport('approval-link'))
+                self.assertIsNotNone(entry, {k: {"error": v.error, "enabled": v.enabled} for k,v in manager._plugins.items() if k == "approval-link"})
+                self.assertEqual(entry.plugin_id,'approval-link')
                 self.assertEqual(entry.profile_home,str(Path(home).resolve()))
             finally:
                 manager.unload()
@@ -56,21 +56,21 @@ class NativeTests(unittest.TestCase):
         from hermes_cli.web_server_dashboard import _dashboard_plugin_entry, _mount_plugin_api_routes
         from unittest.mock import patch
         raw=json.loads((ROOT/'dashboard/manifest.json').read_text())
-        plugin=_dashboard_plugin_entry(raw,'photon-approvals',ROOT/'dashboard','user')
+        plugin=_dashboard_plugin_entry(raw,'approval-link',ROOT/'dashboard','user')
         app=FastAPI()
         with patch('hermes_cli.web_server.app',app), \
                 patch('hermes_cli.web_server._get_dashboard_plugins',return_value=[plugin]), \
-                patch('hermes_cli.plugins_cmd._get_enabled_set',return_value={'photon-approvals'}), \
+                patch('hermes_cli.plugins_cmd._get_enabled_set',return_value={'approval-link'}), \
                 patch('hermes_cli.plugins_cmd._get_disabled_set',return_value=set()):
             _mount_plugin_api_routes()
         paths={route.path for route in app.routes}
-        self.assertIn('/api/plugins/photon-approvals/requests/{request_id}',paths)
-        self.assertIn('/api/plugins/photon-approvals/requests/{request_id}/decision',paths)
+        self.assertIn('/api/plugins/approval-link/requests/{request_id}',paths)
+        self.assertIn('/api/plugins/approval-link/requests/{request_id}/decision',paths)
 
     def test_copied_plugin_directory_loads_without_installing_the_package(self):
         import subprocess, sys
         with tempfile.TemporaryDirectory() as home:
-            target = Path(home)/'photon-approvals'
+            target = Path(home)/'approval-link'
             copy_runtime(target)
             code = (
                 "import importlib.util as u, sys\n"
@@ -83,7 +83,7 @@ class NativeTests(unittest.TestCase):
                 "    def register_approval_transport(self, name, fn): names.append(name)\n"
                 "plugin.register(Ctx())\n"
                 f"api = load('copied_api', {str(target/'dashboard/plugin_api.py')!r})\n"
-                "assert names == ['photon-cards'] and api.router.routes\n")
+                "assert names == ['approval-link'] and api.router.routes\n")
             result = subprocess.run([sys.executable, '-I', '-c', code], capture_output=True, text=True, cwd=home)
             self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -94,6 +94,6 @@ class NativeTests(unittest.TestCase):
             listed[name.strip()] = digest
         actual = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in
                   [ROOT / 'plugin.yaml', ROOT / '__init__.py', ROOT / 'dashboard/manifest.json',
-                   ROOT / 'dashboard/plugin_api.py', *(ROOT / 'hermes_photon_approvals').glob('*.py'),
+                   ROOT / 'dashboard/plugin_api.py', *(ROOT / 'approval_link').glob('*.py'),
                    *(ROOT / 'dashboard/dist').glob('*')]}
         self.assertEqual(listed, actual, 'Regenerate MANIFEST.sha256: see the README.')

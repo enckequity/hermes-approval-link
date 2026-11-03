@@ -1,8 +1,8 @@
-.photon-approval-card { max-width: 42rem; margin: 0 auto; padding: 1.25rem; }
-.photon-approval-card h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 1rem; }
-.photon-approval-card p { margin: 1rem 0; }
-.photon-approval-card pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 1rem; border: 1px solid currentColor; border-radius: .5rem; }
-.photon-approval-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
-.photon-approval-actions button { min-height: 48px; padding: .75rem 1.25rem; border: 1px solid currentColor; border-radius: .5rem; font: inherit; }
-.photon-approval-actions button:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
-.photon-approval-actions button:disabled { opacity: .55; cursor: default; }
+.approval-link-card { max-width: 42rem; margin: 0 auto; padding: 1.25rem; }
+.approval-link-card h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 1rem; }
+.approval-link-card p { margin: 1rem 0; }
+.approval-link-card pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 1rem; border: 1px solid currentColor; border-radius: .5rem; }
+.approval-link-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.approval-link-actions button { min-height: 48px; padding: .75rem 1.25rem; border: 1px solid currentColor; border-radius: .5rem; font: inherit; }
+.approval-link-actions button:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
+.approval-link-actions button:disabled { opacity: .55; cursor: default; }
