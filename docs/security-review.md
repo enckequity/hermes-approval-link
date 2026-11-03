@@ -24,7 +24,7 @@ Reviewed 2026-11-03 against Hermes v0.22.2 (`d923a5e`), then again after the mov
 
 ## Open item: framing (clickjacking)
 
-I found no `frame-ancestors` or `X-Frame-Options` anywhere in the dashboard server code (`hermes_cli`). `SameSite=Lax` session cookies are not sent in cross-site frames, which blocks framing in practice, but the headers would make it explicit. The page itself now renders no buttons when `window.top !== window.self`, so it is safe without the proxy. Since the link opens in the browser, nothing needs framing, and the proxy header is the second layer. Smallest fix, and it belongs in our route, not in Hermes: set `Content-Security-Policy: frame-ancestors 'none'` on the dashboard path at the reverse proxy. Not done here; it is a deployment step.
+I found no `frame-ancestors` or `X-Frame-Options` anywhere in the dashboard server code (`hermes_cli`). `SameSite=Lax` session cookies are not sent in cross-site frames, which blocks framing in practice, but the headers would make it explicit. The page itself renders no buttons when `window.top !== window.self`; that is the first layer and holds without any proxy. The approval link opens in the browser from a text, so it never needs framing. The second layer belongs at the reverse proxy: set `Content-Security-Policy: frame-ancestors 'self'` on the dashboard path. Use `'self'`, not `'none'`, if the same origin legitimately frames its own dashboard pages; it still blocks every other origin, including sibling subdomains. Not done here; it is a deployment step.
 
 ## Limits to accept or test live
 
