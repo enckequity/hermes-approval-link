@@ -18,11 +18,11 @@ Reviewed 2026-11-03 against Hermes v0.22.2 (`d923a5e`). Scope: the path from `re
 
 **Credential in the card URL. None.** The URL is the dashboard URL plus `?request=<random id>`. The Photon project token travels only in memory and in the `grpcurl` child's environment (`-expand-headers`), never in argv, logs or SQLite. Token exchange refuses redirects. The Messages bubble shows only a generic caption.
 
-**Deployment fix.** The owner dashboard is served at `https://owner.teamshift.io/native`, but config accepted only a bare origin, so the card link would have missed the dashboard. `PHOTON_APPROVAL_PUBLIC_URL` may now carry a plain path prefix (no query, fragment, dot segments or odd characters). The Origin check still uses scheme and host only. Tests cover both.
+**Deployment fix.** The owner dashboard is served at `https://owner.teamshift.io/native`, but config accepted only a bare origin, so the card link would have missed the dashboard. `PHOTON_APPROVAL_PUBLIC_URL` may now carry a plain path prefix (no query, fragment, dot segments or odd characters). The Origin check uses scheme and host only, normalized the way browsers send it (lowercase host, default port dropped). Tests cover both.
 
 ## Limits to accept or test live
 
-- Hermes' dashboard sends no `frame-ancestors`/`X-Frame-Options`. `SameSite=Lax` cookies block cross-site framing in practice. Verify inside Messages.
+- No `frame-ancestors` or `X-Frame-Options` header is set anywhere in the dashboard server code (`hermes_cli`) that I found. `SameSite=Lax` cookies block cross-site framing in practice. Verify inside Messages.
 - Pomerium sits in front of the owner dashboard. Whether its login and Hermes OIDC complete inside the Messages webview is unproven (teamshift#56).
 - State is local SQLite. Anything that can already edit the tenant's database or Hermes config can bypass the plugin. It is not a defense against a compromised runtime.
 - Uncertain sends are never retried. A failed send denies the request.

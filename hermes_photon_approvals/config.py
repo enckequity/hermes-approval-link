@@ -36,11 +36,17 @@ class Settings:
                 or url.query or url.fragment or '\\' in public or any(c.isspace() for c in public)
                 or (url.path and not re.fullmatch(r'(/(?!\.+(?:/|$))[A-Za-z0-9._~-]+)+', url.path))):
             raise ValueError('Use an HTTPS dashboard URL without credentials or query.')
-        origin = url.scheme + '://' + url.netloc
+        host = url.hostname
+        if host.endswith('.'):
+            raise ValueError('Use a valid HTTPS origin.')
+        # Match what browsers send in Origin: lowercase host, default port omitted.
+        origin = 'https://' + ('[' + host + ']' if ':' in host else host)
         try:
-            url.port
+            port = url.port
         except ValueError:
             raise ValueError('Use a valid HTTPS origin.') from None
+        if port and port != 443:
+            origin += ':' + str(port)
         dm = required('DM')
         if not re.fullmatch(r'\+[1-9][0-9]{7,14}', dm):
             raise ValueError('Configure an existing E.164 direct-message recipient.')

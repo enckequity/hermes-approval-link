@@ -14,9 +14,10 @@ def present(request, settings, sender):
     seconds = min(float(request.timeout_seconds), 300)
     if not math.isfinite(seconds) or seconds <= 0 or not {'once','deny'} <= set(request.allowed_choices):
         return request.respond('deny')
+    expires = time.time()+seconds  # taken before the deadline so no answer is accepted after the final read
     deadline = time.monotonic()+seconds
     store = Store(settings.state_dir, settings.tenant, settings.identity)
-    store.create(request.request_id,request.digest,request.command,request.description,time.time()+seconds)
+    store.create(request.request_id,request.digest,request.command,request.description,expires)
     url = settings.origin+settings.prefix+'/photon-approvals?request='+request.request_id
     client_id = str(uuid.uuid4())
     store.record_delivery(request.request_id,'intent',{'clientMessageId':client_id})
@@ -30,12 +31,12 @@ def present(request, settings, sender):
     choice = 'deny'
     status = 'expired'
     try:
-        while time.monotonic() < deadline:
+        while True:
             row = store.read(request.request_id)
             if row['status'] in ('once','deny'):
                 choice, status = row['status'], 'recorded'
                 break
-            if row['status'] != 'pending':
+            if row['status'] != 'pending' or time.monotonic() >= deadline:
                 break
             time.sleep(min(.1,max(0,deadline-time.monotonic())))
     finally:

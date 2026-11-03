@@ -21,3 +21,12 @@ class ConfigTests(unittest.TestCase):
                    PHOTON_APPROVAL_DM='+15555550123', PHOTON_APPROVAL_STATE_DIR='/tmp/approval-test-state')
         settings = Settings.from_env(env)
         self.assertEqual((settings.origin, settings.prefix), ('https://agent.example.test', '/native'))
+
+    def test_origin_matches_what_browsers_send(self):
+        env = dict(PHOTON_APPROVAL_TENANT_ID='t', PHOTON_APPROVAL_PROVIDER='oidc', PHOTON_APPROVAL_USER_ID='alice',
+                   PHOTON_APPROVAL_DM='+15555550123', PHOTON_APPROVAL_STATE_DIR='/tmp/approval-test-state')
+        for url, origin in [('HTTPS://A.Example.test:443/native', 'https://a.example.test'),
+                            ('https://a.example.test:8443', 'https://a.example.test:8443')]:
+            self.assertEqual(Settings.from_env({**env, 'PHOTON_APPROVAL_PUBLIC_URL': url}).origin, origin)
+        with self.assertRaises(ValueError):
+            Settings.from_env({**env, 'PHOTON_APPROVAL_PUBLIC_URL': 'https://a.example.test./x'})
