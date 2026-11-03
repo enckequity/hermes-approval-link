@@ -1,7 +1,13 @@
-"""Hermes directory-plugin entry point. The package ships beside this file, so copying the
-plugin directory is a complete install; an already installed copy of the package wins."""
-import sys
-from pathlib import Path
+"""Hermes directory-plugin entry point: registers the photon-cards approval transport."""
 
-sys.path.append(str(Path(__file__).resolve().parent))
-from hermes_photon_approvals import register  # noqa: E402
+
+def register(ctx):
+    from .hermes_photon_approvals.config import Settings
+    from .hermes_photon_approvals.photon import PhotonSender
+    from .hermes_photon_approvals.transport import present
+
+    def approval(request):
+        settings = Settings.from_env()
+        return present(request, settings, PhotonSender.from_env(settings.dm))
+
+    ctx.register_approval_transport('photon-cards', approval)

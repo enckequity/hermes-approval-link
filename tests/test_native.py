@@ -1,6 +1,6 @@
 """Run inside a supported Hermes environment, without starting a service."""
+import hashlib
 import importlib.util
-import os
 import shutil
 import tempfile
 import unittest
@@ -86,3 +86,14 @@ class NativeTests(unittest.TestCase):
                 "assert names == ['photon-cards'] and api.router.routes\n")
             result = subprocess.run([sys.executable, '-I', '-c', code], capture_output=True, text=True, cwd=home)
             self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_manifest_matches_every_runtime_file(self):
+        listed = {}
+        for line in (ROOT / 'MANIFEST.sha256').read_text().splitlines():
+            digest, name = line.split(None, 1)
+            listed[name.strip()] = digest
+        actual = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in
+                  [ROOT / 'plugin.yaml', ROOT / '__init__.py', ROOT / 'dashboard/manifest.json',
+                   ROOT / 'dashboard/plugin_api.py', *(ROOT / 'hermes_photon_approvals').glob('*.py'),
+                   *(ROOT / 'dashboard/dist').glob('*')]}
+        self.assertEqual(listed, actual, 'Regenerate MANIFEST.sha256: see the README.')
